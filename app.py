@@ -5,7 +5,10 @@ import numpy as np
 app = Flask(__name__)
  
 model = tf.keras.models.load_model("emotion_cnn.h5")
- 
+@app.route("/", methods=["GET"])
+def home():
+    return "API de détection d'émotion est en ligne."
+
 @app.route("/predict", methods=["POST"])
 def predict():
     file = request.files["image"]
