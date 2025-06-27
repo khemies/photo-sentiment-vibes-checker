@@ -2,3 +2,6 @@ flask
 tensorflow
 numpy
 pillow
+boto3
+gast 
+pandas

@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,22 @@ import { toast } from '@/components/ui/sonner';
 import { Upload, Camera } from 'lucide-react';
 
 interface ImageUploaderProps {
-  onImageSelected: (imageUrl: string) => void;
+  onImageSelected: (file: File) => void;
+}
+
+// Utilitaire : base64 → File
+function base64ToFile(dataUrl: string, filename: string): File {
+  const arr = dataUrl.split(',');
+  const mimeMatch = arr[0].match(/:(.*?);/);
+  const mime = mimeMatch ? mimeMatch[1] : 'image/png';
+  const bstr = atob(arr[1]);
+  const u8arr = new Uint8Array(bstr.length);
+
+  for (let i = 0; i < bstr.length; i++) {
+    u8arr[i] = bstr.charCodeAt(i);
+  }
+
+  return new File([u8arr], filename, { type: mime });
 }
 
 const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageSelected }) => {
@@ -15,55 +29,53 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageSelected }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  
+
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(true);
   };
-  
+
   const handleDragLeave = () => {
     setIsDragging(false);
   };
-  
+
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     const files = e.dataTransfer.files;
     if (files.length > 0) {
       processFile(files[0]);
     }
   };
-  
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       processFile(e.target.files[0]);
-      // Reset the input value to allow selecting the same file again
       e.target.value = '';
     }
   };
-  
+
   const processFile = (file: File) => {
-    // Check if file is an image
     if (!file.type.startsWith('image/')) {
       toast.error("Veuillez sélectionner une image valide");
       return;
     }
-    
+
     const reader = new FileReader();
     reader.onload = (event) => {
       if (event.target && typeof event.target.result === 'string') {
-        onImageSelected(event.target.result);
+        const fileConverted = base64ToFile(event.target.result, file.name);
+        onImageSelected(fileConverted); // Passe un vrai fichier File
       }
     };
     reader.readAsDataURL(file);
   };
-  
+
   const startCamera = async () => {
     try {
       setIsCapturing(true);
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
@@ -73,21 +85,21 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageSelected }) => {
       setIsCapturing(false);
     }
   };
-  
+
   const captureImage = () => {
     if (videoRef.current && canvasRef.current) {
       const video = videoRef.current;
       const canvas = canvasRef.current;
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
-      
+
       const context = canvas.getContext('2d');
       if (context) {
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
         const imageUrl = canvas.toDataURL('image/png');
-        onImageSelected(imageUrl);
-        
-        // Stop the camera stream
+        const fileFromCanvas = base64ToFile(imageUrl, "webcam-capture.png");
+        onImageSelected(fileFromCanvas); // Passe un vrai fichier File
+
         const stream = video.srcObject as MediaStream;
         if (stream) {
           stream.getTracks().forEach(track => track.stop());
@@ -96,7 +108,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageSelected }) => {
       }
     }
   };
-  
+
   const cancelCapture = () => {
     if (videoRef.current) {
       const stream = videoRef.current.srcObject as MediaStream;
@@ -106,7 +118,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageSelected }) => {
       setIsCapturing(false);
     }
   };
-  
+
   return (
     <Card className="w-full max-w-xl mx-auto">
       <CardContent className="p-6">
@@ -128,7 +140,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageSelected }) => {
                 ou cliquez pour sélectionner un fichier (PNG, JPG)
               </p>
             </div>
-            
+
             <div className="flex flex-col sm:flex-row gap-2 justify-center">
               <Button
                 onClick={() => fileInputRef.current?.click()}
@@ -147,7 +159,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageSelected }) => {
                 Utiliser la caméra
               </Button>
             </div>
-            
+
             <input
               type="file"
               ref={fileInputRef}
