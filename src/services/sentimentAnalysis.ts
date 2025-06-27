@@ -23,7 +23,7 @@ export const analyzeImage = async (file: File): Promise<EmotionData> => {
   const formData = new FormData();
   formData.append("image", file);
 
-  const response = await fetch("http://localhost:5000/predict", {
+  const response = await fetch("http://51.44.52.100:5000/predict", {
     method: "POST",
     body: formData,
   });
