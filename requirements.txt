@@ -5,3 +5,4 @@ pillow
 boto3
 gast 
 pandas
+flask_cors
